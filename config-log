@@ -1,0 +1,89 @@
+#!/bin/sh
+
+# Brayden Freitas March/April 2020
+
+# config-log
+
+# A simple bash script to help keep track of changes via a file at
+# $XDG_CONFIG_HOME/changes, keeping track of file location and line number
+# changes. Requires permission to edit the input file as well as any files in
+# the directory $XDG_CONFIG_HOME.
+
+displayUsage(){
+
+	# Display the proper usage
+
+	echo "The required syntax is"
+	echo "     $(basename $0) FILE_1"
+	echo "Where you have permission to edit FILE_1 and make changes in the"
+	echo "directory that it is stored in, as well as $XDG_CONFIG_HOME."
+	exit 1
+}
+
+displaySudo(){
+
+	# Display a readable error
+
+	echo "$1 is not readable. Rerun with root permissions."
+	exit 1
+}
+
+appendToFile(){
+
+	# Add the file change to the log
+	
+	echo $1 >> $XDG_CONFIG_HOME/changes
+	return 0
+}
+
+changeFile(){
+
+	# Change file if it was already in the log
+
+	sed -i "s#$1.*#$2#" $XDG_CONFIG_HOME/changes
+	return 0
+}
+
+makeLog(){
+
+	# Header for the log file
+
+	echo "###############################################################################" >> $XDG_CONFIG_HOME/changes
+	echo "# AUTHOR: Brayden Freitas DATE: March 2020                                    #" >> $XDG_CONFIG_HOME/changes
+	echo "###############################################################################" >> $XDG_CONFIG_HOME/changes
+	echo "# This log contains information about all changes which are done to files     #" >> $XDG_CONFIG_HOME/changes
+	echo "# which are edited via the command 'cvim FILE'. Each line corresponds to a    #" >> $XDG_CONFIG_HOME/changes
+	echo "# single file edit, where the first entry is the full path to the file, and   #" >> $XDG_CONFIG_HOME/changes
+	echo "# the second entry is a comma delimited list which corresponds to the edited  #" >> $XDG_CONFIG_HOME/changes
+	echo "# line numbers. In the same directory where each config file is located there #" >> $XDG_CONFIG_HOME/changes
+	echo "# exists a file '.FILE.og' which corresponds to the original file before any  #" >> $XDG_CONFIG_HOME/changes
+	echo "# editing was performed. An empty list means the file was previously edited   #" >> $XDG_CONFIG_HOME/changes
+	echo "# but is now back to its original state.                                      #" >> $XDG_CONFIG_HOME/changes
+	echo "###############################################################################" >> $XDG_CONFIG_HOME/changes
+	echo >> $XDG_CONFIG_HOME/changes
+}
+
+[ $# -eq 1 ] && [ -f $1 ] || displayUsage
+
+AbsFile=$(readlink -f $1)
+AbsPWD=$(dirname $AbsFile)
+LocName=$(basename $1)
+OgFile=$AbsPWD/.$LocName.og
+
+[ ! -w $1 ] && [ $(id -u) -ne 0 ] && displaySudo $AbsFile
+
+[ -z ${EDITOR+x} ] && Edt="vi" || Edt=$EDITOR 
+
+[ -f $OgFile ] || cp $AbsFile $OgFile
+$Edt $AbsFile
+
+DiffOut=$(diff $AbsFile $OgFile | \
+	sed 's/^[^0-9]*\([0-9]\+\).*$/\1/' | grep '[0-9]')
+
+ToFile=$(echo -e "$AbsFile\t$(echo $DiffOut | sed 's/ /;/g')")
+
+[ -f $XDG_CONFIG_HOME/changes ] || makeLog
+
+grep -q "$(pwd)/$1" $XDG_CONFIG_HOME/changes && \
+	changeFile "$AbsFile" "$ToFile" || \
+	appendToFile "$ToFile"
