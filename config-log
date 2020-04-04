@@ -1,9 +1,7 @@
-#!/bin/sh
+!/bin/sh
 
 # Brayden Freitas March/April 2020
-
 # config-log
-
 # A simple bash script to help keep track of changes via a file at
 # $XDG_CONFIG_HOME/changes, keeping track of file location and line number
 # changes. Requires permission to edit the input file as well as any files in
@@ -80,7 +78,7 @@ $Edt $AbsFile
 DiffOut=$(diff $AbsFile $OgFile | \
 	sed 's/^[^0-9]*\([0-9]\+\).*$/\1/' | grep '[0-9]')
 
-ToFile=$(echo -e "$AbsFile\t$(echo $DiffOut | sed 's/ /;/g')")
+ToFile=$(echo "$AbsFile\t$(echo $DiffOut | sed 's/ /;/g')")
 
 [ -f $XDG_CONFIG_HOME/changes ] || makeLog
 
