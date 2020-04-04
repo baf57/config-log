@@ -1,4 +1,4 @@
-!/bin/sh
+#!/bin/sh
 
 # Brayden Freitas March/April 2020
 # config-log
@@ -38,7 +38,7 @@ changeFile(){
 
 	# Change file if it was already in the log
 
-	sed -i "s#$1.*#$2#" $XDG_CONFIG_HOME/changes
+	sed -i "s:$1.*:$2:" $XDG_CONFIG_HOME/changes
 	return 0
 }
 
@@ -75,13 +75,13 @@ OgFile=$AbsPWD/.$LocName.og
 [ -f $OgFile ] || cp $AbsFile $OgFile
 $Edt $AbsFile
 
-DiffOut=$(diff $AbsFile $OgFile | \
-	sed 's/^[^0-9]*\([0-9]\+\).*$/\1/' | grep '[0-9]')
+DiffOut=$(diff $AbsFile $OgFile | grep '^[0-9]' | sed -e 's/[0-9]\+//2g' -e \
+	's/[^0-9]//g')
 
 ToFile=$(echo "$AbsFile\t$(echo $DiffOut | sed 's/ /;/g')")
 
 [ -f $XDG_CONFIG_HOME/changes ] || makeLog
 
-grep -q "$(pwd)/$1" $XDG_CONFIG_HOME/changes && \
+grep -q "$AbsFile" $XDG_CONFIG_HOME/changes && \
 	changeFile "$AbsFile" "$ToFile" || \
 	appendToFile "$ToFile"
